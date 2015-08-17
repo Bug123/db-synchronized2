@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<beans xmlns="http://www.springframework.org/schema/beans"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:batch="http://www.springframework.org/schema/batch"
+	xmlns:jee="http://www.springframework.org/schema/jee"
+	xsi:schemaLocation="http://www.springframework.org/schema/batch http://www.springframework.org/schema/batch/spring-batch-2.1.xsd  
+        http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-2.5.xsd
+        http://www.springframework.org/schema/jee      
+		http://www.springframework.org/schema/jee/spring-jee-2.0.xsd">
+
+	<batch:job id="DataReadAndWriterJob" xmlns="http://www.springframework.org/schema/batch">
+		<batch:step id="DataReadAndWriterStep">
+			<batch:tasklet>
+				<batch:chunk reader="jdbcItemReader" writer="jdbcItemWriter" commit-interval="1" />
+			</batch:tasklet>
+		</batch:step>
+	</batch:job>
+	
+	<!-- 从表读取数据 -->
+	<bean id="jdbcItemReader" class="org.springframework.batch.item.database.JdbcCursorItemReader">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="sql" value="select * from student"/>
+		<property name="rowMapper">
+			<bean class="org.springframework.jdbc.core.BeanPropertyRowMapper">
+				<property name="mappedClass" value="com.yipushi.entity.Student"/>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 从表读出数据 -->
+	<bean id="jdbcItemWriter" class="com.yipushi.writer.MyJdbcBatchItemWriter">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="sql" value="insert into student2 values(:id,:name,:age,:sex)"/>
+		<property name="itemSqlParameterSourceProvider">
+			<bean class="org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider"/>
+		</property>
+	</bean>
+
+	<bean id="jdbcTemplate" class="org.springframework.jdbc.core.JdbcTemplate">  
+        <property name="dataSource" ref="dataSource" />  
+    </bean>
+
+	<!-- 数据库连接 -->
+	<bean id="dataSource" class="org.apache.commons.dbcp.BasicDataSource" destroy-method="close">
+		<property name="driverClassName" value="com.mysql.jdbc.Driver"/>
+		<property name="url" value="jdbc:mysql://localhost:3306/yy"/>
+		<property name="username" value="root"/>
+		<property name="password" value=""/>
+	</bean>
+	
+	
+	<!-- 数据库操作类 -->
+	<bean id="dataHandling" class="com.yipushi.handling.DataHandling">
+		<property name="dataSource" ref="dataSource"/>
+	</bean>
+	
+	<!-- 数据检查Job -->
+	<batch:job id="DataInspect" xmlns="http://www.springframework.org/schema/batch">
+		<batch:step id="DataInspectStep">
+			<batch:tasklet>
+				<batch:chunk reader="DataInspectReader" writer="DataInspectWriter" commit-interval="1" />
+			</batch:tasklet>
+		</batch:step>
+	</batch:job>
+
+	<!-- 从表读取数据（数据检查） -->
+	<bean id="DataInspectReader" class="org.springframework.batch.item.database.JdbcCursorItemReader">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="sql" value="select * from student"/>
+		<property name="rowMapper">
+			<bean class="org.springframework.jdbc.core.BeanPropertyRowMapper">
+				<property name="mappedClass" value="com.yipushi.entity.Student"/>
+			</bean>
+		</property>
+	</bean>
+	
+	<!-- 从表读出数据（数据检查） -->
+	<bean id="DataInspectWriter" class="com.yipushi.writer.DataInspectWriter">
+		<property name="dataSource" ref="dataSource"/>
+		<property name="sql" value="insert into student2 values(:id,:name,:age,:sex)"/>
+		<property name="itemSqlParameterSourceProvider">
+			<bean class="org.springframework.batch.item.database.BeanPropertyItemSqlParameterSourceProvider"/>
+		</property>
+	</bean>
+</beans>
